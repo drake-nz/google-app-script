@@ -48,7 +48,7 @@ When you run `testFormatMainSheet()`, you should see logs like:
 
 ```
 === Starting Format Test ===
-Sheet ID: 1MmoIyz2t9WlzBtcuywhUOExzejHNbx2Vs5cSwXgszeg
+Sheet ID: YOUR_SHEET_ID_HERE
 Sheet Name: Test1
 Running diagnostic...
 ✅ Spreadsheet opened: [Your Sheet Name]

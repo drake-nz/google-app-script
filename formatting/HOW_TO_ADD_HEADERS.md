@@ -8,7 +8,7 @@ You have two ways to open your sheet:
 
 Open this URL in your browser:
 ```
-https://docs.google.com/spreadsheets/d/1MmoIyz2t9WlzBtcuywhUOExzejHNbx2Vs5cSwXgszeg/edit
+https://docs.google.com/spreadsheets/d/YOUR_SHEET_ID_HERE/edit
 ```
 
 ### Option B: Find It in Google Drive
