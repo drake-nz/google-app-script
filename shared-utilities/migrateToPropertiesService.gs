@@ -22,7 +22,7 @@ function migrateSheetIdToPropertiesService() {
     const properties = PropertiesService.getScriptProperties();
     
     // Your existing Sheet ID (from Config.gs)
-    const existingId = '1MmoIyz2t9WlzBtcuywhUOExzejHNbx2Vs5cSwXgszeg';
+    const existingId = 'YOUR_SHEET_ID_HERE';
     
     // Store in PropertiesService
     properties.setProperty('SPREADSHEET_ID_MAIN', existingId);

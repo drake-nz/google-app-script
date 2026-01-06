@@ -29,7 +29,7 @@ Google Apps Script provides `PropertiesService` to store sensitive data securely
    ```javascript
    // In Apps Script editor, run this once:
    setupSheetIds({
-     main: '1MmoIyz2t9WlzBtcuywhUOExzejHNbx2Vs5cSwXgszeg'
+     main: 'YOUR_SHEET_ID_HERE'
    });
    ```
 
@@ -60,7 +60,7 @@ After running `setupSheetIds()`, your IDs are stored securely. You can now:
 ```javascript
 const CONFIG = {
   SPREADSHEET_IDS: {
-    'main': '1MmoIyz2t9WlzBtcuywhUOExzejHNbx2Vs5cSwXgszeg', // ❌ Visible in GitHub
+    'main': 'YOUR_SHEET_ID_HERE', // ❌ Visible in GitHub
   }
 };
 ```
@@ -75,7 +75,7 @@ const CONFIG = {
 };
 
 // PropertiesService (private, not in code)
-SPREADSHEET_ID_MAIN = '1MmoIyz2t9WlzBtcuywhUOExzejHNbx2Vs5cSwXgszeg'
+SPREADSHEET_ID_MAIN = 'YOUR_SHEET_ID_HERE'
 ```
 
 ### Code Reads from PropertiesService
@@ -102,7 +102,7 @@ If you prefer to keep IDs in a file for local development:
    // This file is gitignored - add your real IDs here
    const CONFIG = {
      SPREADSHEET_IDS: {
-       'main': '1MmoIyz2t9WlzBtcuywhUOExzejHNbx2Vs5cSwXgszeg',
+       'main': 'YOUR_SHEET_ID_HERE',
      }
    };
    ```
