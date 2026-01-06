@@ -3,10 +3,11 @@
  * Handles all formatting operations for Google Sheets
  */
 
-// Configuration - includes your Sheet ID
+// Configuration - Sheet IDs stored in PropertiesService (secure)
+// Run setupSheetIds() in shared-utilities/Config.gs to configure
 const CONFIG = {
   SPREADSHEET_IDS: {
-    'main': '1MmoIyz2t9WlzBtcuywhUOExzejHNbx2Vs5cSwXgszeg',
+    'main': '', // Stored in PropertiesService - run setupSheetIds() to configure
   },
   DEFAULT_SHEET_NAME: 'TEST1',
   FORMATTING: {
@@ -358,7 +359,7 @@ function testFormatMainSheet() {
 function simpleFormatTest() {
   try {
     Logger.log('=== Simple Format Test ===');
-    const sheetId = CONFIG.SPREADSHEET_IDS.main;
+    const sheetId = getMainSheetId();
     Logger.log(`Sheet ID: ${sheetId}`);
     
     // Open spreadsheet
@@ -399,11 +400,32 @@ function simpleFormatTest() {
 }
 
 /**
+ * Get the main spreadsheet ID (secure - from PropertiesService)
+ * @return {string} The main spreadsheet ID
+ */
+function getMainSheetId() {
+  // Try PropertiesService first (most secure - stored in script properties)
+  const properties = PropertiesService.getScriptProperties();
+  const storedId = properties.getProperty('SPREADSHEET_ID_MAIN');
+  if (storedId) {
+    return storedId;
+  }
+  
+  // Fallback to CONFIG (for local development)
+  const configId = CONFIG.SPREADSHEET_IDS.main;
+  if (configId && configId.trim() !== '') {
+    return configId;
+  }
+  
+  throw new Error('Spreadsheet ID not found. Run setupSheetIds() in shared-utilities/Config.gs to configure.');
+}
+
+/**
  * Format main sheet with specific sheet name
  * @param {string} sheetName - Name of the sheet tab to format
  */
 function formatMainSheet(sheetName = null) {
-  const sheetId = CONFIG.SPREADSHEET_IDS.main;
+  const sheetId = getMainSheetId();
   formatSheet(sheetId, sheetName);
 }
 
@@ -411,7 +433,7 @@ function formatMainSheet(sheetName = null) {
  * Get the URL to open your sheet in the browser
  */
 function getSheetUrl() {
-  const sheetId = CONFIG.SPREADSHEET_IDS.main;
+  const sheetId = getMainSheetId();
   const url = `https://docs.google.com/spreadsheets/d/${sheetId}/edit`;
   Logger.log(`📋 Open your sheet here: ${url}`);
   return url;
@@ -434,7 +456,7 @@ function concatenateB8C8ToD8() {
  */
 function loadConcatenationConfigFromSheet() {
   try {
-    const sheetId = CONFIG.SPREADSHEET_IDS.main;
+    const sheetId = getMainSheetId();
     const spreadsheet = SpreadsheetApp.openById(sheetId);
     const configSheet = spreadsheet.getSheetByName('Format_Config');
     
@@ -575,7 +597,7 @@ function processAllConcatenations() {
  */
 function concatenateCellsWithFormatting(configOrKey = null) {
   try {
-    const sheetId = CONFIG.SPREADSHEET_IDS.main;
+    const sheetId = getMainSheetId();
     let config;
     
     // Handle both config object and config key string
@@ -1163,5 +1185,199 @@ function diagnoseSheet() {
       success: false,
       error: error.message
     };
+  }
+}
+
+/**
+ * Helper function to check if a cell range matches any source range in configurations
+ * @param {string} editedSheetName - Name of the sheet that was edited
+ * @param {string} editedCellA1 - A1 notation of the edited cell (e.g., "B8")
+ * @returns {boolean} - True if the edited cell matches any source range
+ */
+function isCellInSourceRanges(editedSheetName, editedCellA1) {
+  try {
+    const configs = loadConcatenationConfigFromSheet();
+    
+    for (const config of configs) {
+      // Check if edited sheet matches this config's source sheet
+      if (config.sourceSheet !== editedSheetName) {
+        continue;
+      }
+      
+      // Check if edited cell is in any of the source ranges
+      for (const sourceRange of config.sourceRanges) {
+        // Handle both single cells (B8) and ranges (B8:C8)
+        const rangeParts = sourceRange.split(':');
+        const startCell = rangeParts[0];
+        
+        // If edited cell matches the start cell or is in the range
+        if (editedCellA1 === startCell) {
+          return true;
+        }
+        
+        // If it's a range, check if edited cell is within it
+        if (rangeParts.length === 2) {
+          const endCell = rangeParts[1];
+          // Simple check: if edited cell matches start or end, it's in range
+          // For more complex range checking, you'd need to parse A1 notation
+          if (editedCellA1 === startCell || editedCellA1 === endCell) {
+            return true;
+          }
+        }
+      }
+    }
+    
+    return false;
+  } catch (error) {
+    Logger.log(`Error checking source ranges: ${error.message}`);
+    return false;
+  }
+}
+
+/**
+ * Simple trigger: Runs automatically when a cell is edited
+ * NOTE: Simple triggers have limitations (6 min execution time, no external APIs)
+ * For more reliability, use installable triggers (see setupAutoUpdateTrigger)
+ * 
+ * @param {Event} e - The edit event
+ */
+function onEdit(e) {
+  try {
+    // Get edit information
+    const editedSheet = e.source.getActiveSheet();
+    const editedSheetName = editedSheet.getName();
+    const editedRange = e.range;
+    const editedCellA1 = editedRange.getA1Notation();
+    
+    // Skip if editing Format_Config sheet (to avoid infinite loops)
+    if (editedSheetName === 'Format_Config') {
+      return;
+    }
+    
+    // Check if the edited cell is in any source range
+    const isSourceCell = isCellInSourceRanges(editedSheetName, editedCellA1);
+    
+    if (isSourceCell) {
+      Logger.log(`📝 Cell ${editedCellA1} in sheet "${editedSheetName}" was edited - triggering concatenation update`);
+      
+      // Process all concatenations (will update all affected destination cells)
+      // Use try-catch to prevent errors from breaking the sheet
+      try {
+        processAllConcatenations();
+        Logger.log(`✅ Concatenation update completed after edit to ${editedCellA1}`);
+      } catch (error) {
+        Logger.log(`❌ Error updating concatenation: ${error.message}`);
+        // Don't throw - we don't want to break the edit operation
+      }
+    }
+  } catch (error) {
+    Logger.log(`❌ Error in onEdit trigger: ${error.message}`);
+    // Don't throw - simple triggers should not throw errors
+  }
+}
+
+/**
+ * Set up an installable trigger for automatic updates
+ * Installable triggers are more reliable than simple triggers
+ * 
+ * Run this function ONCE to set up the trigger
+ * 
+ * To run: In Apps Script editor, select setupAutoUpdateTrigger and click Run
+ */
+function setupAutoUpdateTrigger() {
+  try {
+    const sheetId = getMainSheetId();
+    const spreadsheet = SpreadsheetApp.openById(sheetId);
+    
+    // Delete existing triggers with the same name (if any)
+    const triggers = ScriptApp.getProjectTriggers();
+    triggers.forEach(trigger => {
+      if (trigger.getHandlerFunction() === 'onEditTrigger') {
+        ScriptApp.deleteTrigger(trigger);
+        Logger.log('Deleted existing trigger');
+      }
+    });
+    
+    // Create new installable trigger
+    const trigger = ScriptApp.newTrigger('onEditTrigger')
+      .onEdit()
+      .create();
+    
+    Logger.log('✅ Installable trigger created successfully!');
+    Logger.log(`Trigger ID: ${trigger.getUniqueId()}`);
+    Logger.log('The trigger will run automatically when cells are edited.');
+    
+    return trigger;
+  } catch (error) {
+    Logger.log(`❌ Error setting up trigger: ${error.message}`);
+    Logger.log(`Stack: ${error.stack}`);
+    throw error;
+  }
+}
+
+/**
+ * Installable trigger handler (more reliable than simple onEdit)
+ * This function is called by the installable trigger
+ * 
+ * @param {Event} e - The edit event
+ */
+function onEditTrigger(e) {
+  try {
+    // Get edit information
+    const editedSheet = e.source.getActiveSheet();
+    const editedSheetName = editedSheet.getName();
+    const editedRange = e.range;
+    const editedCellA1 = editedRange.getA1Notation();
+    
+    // Skip if editing Format_Config sheet
+    if (editedSheetName === 'Format_Config') {
+      return;
+    }
+    
+    // Check if the edited cell is in any source range
+    const isSourceCell = isCellInSourceRanges(editedSheetName, editedCellA1);
+    
+    if (isSourceCell) {
+      Logger.log(`📝 Cell ${editedCellA1} in sheet "${editedSheetName}" was edited - triggering concatenation update`);
+      
+      // Process all concatenations
+      try {
+        processAllConcatenations();
+        Logger.log(`✅ Concatenation update completed after edit to ${editedCellA1}`);
+      } catch (error) {
+        Logger.log(`❌ Error updating concatenation: ${error.message}`);
+        // Installable triggers can throw, but we'll log and continue
+      }
+    }
+  } catch (error) {
+    Logger.log(`❌ Error in onEditTrigger: ${error.message}`);
+    Logger.log(`Stack: ${error.stack}`);
+    // Installable triggers can throw errors, but we'll log them
+  }
+}
+
+/**
+ * Remove all auto-update triggers
+ * Run this if you want to disable automatic updates
+ */
+function removeAutoUpdateTriggers() {
+  try {
+    const triggers = ScriptApp.getProjectTriggers();
+    let removedCount = 0;
+    
+    triggers.forEach(trigger => {
+      if (trigger.getHandlerFunction() === 'onEditTrigger' || 
+          trigger.getHandlerFunction() === 'onEdit') {
+        ScriptApp.deleteTrigger(trigger);
+        removedCount++;
+        Logger.log(`Deleted trigger: ${trigger.getHandlerFunction()}`);
+      }
+    });
+    
+    Logger.log(`✅ Removed ${removedCount} trigger(s)`);
+    return removedCount;
+  } catch (error) {
+    Logger.log(`❌ Error removing triggers: ${error.message}`);
+    throw error;
   }
 }

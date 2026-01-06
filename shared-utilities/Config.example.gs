@@ -1,20 +1,21 @@
 /**
- * Shared Configuration
+ * Shared Configuration - EXAMPLE/TEMPLATE
  * 
- * SECURITY: Sheet IDs are stored in PropertiesService (not in code)
- * Run setupSheetIds() once to store your IDs securely
+ * Copy this file to Config.local.gs and add your actual Sheet IDs
+ * Config.local.gs is gitignored and will not be committed
  * 
- * For local development, you can use Config.local.gs (gitignored)
- * See Config.example.gs for template
+ * OR use PropertiesService (recommended for production):
+ * - Run setupSheetIds() once to store IDs securely
+ * - IDs will be stored in script properties (not in code)
  */
 
 const CONFIG = {
-  // Sheet IDs should be stored in PropertiesService (run setupSheetIds())
-  // These are fallback defaults (use placeholder values for public repos)
+  // Add your Sheet IDs here
+  // Get from URL: https://docs.google.com/spreadsheets/d/<SHEET_ID>/edit
   SPREADSHEET_IDS: {
-    'main': '', // Stored in PropertiesService - run setupSheetIds() to configure
+    'main': 'YOUR_MAIN_SHEET_ID_HERE',
     // Add more sheet IDs here as needed
-    // Example: 'backup': '',
+    // Example: 'backup': '1abc123def456...',
   },
   
   // Default sheet name
@@ -74,7 +75,7 @@ function getSheet(sheetId, sheetName = CONFIG.DEFAULT_SHEET_NAME) {
  * @return {string} The main spreadsheet ID
  */
 function getMainSheetId() {
-  // Try PropertiesService first (most secure - stored in script properties)
+  // Try PropertiesService first (most secure)
   const properties = PropertiesService.getScriptProperties();
   const storedId = properties.getProperty('SPREADSHEET_ID_MAIN');
   if (storedId) {
@@ -82,12 +83,15 @@ function getMainSheetId() {
   }
   
   // Fallback to CONFIG (for local development)
-  const configId = CONFIG.SPREADSHEET_IDS.main;
-  if (configId) {
-    return configId;
-  }
-  
-  throw new Error('Spreadsheet ID not found. Run setupSheetIds() to configure.');
+  return CONFIG.SPREADSHEET_IDS.main;
+}
+
+/**
+ * Get the main spreadsheet object
+ * @return {Spreadsheet} The main spreadsheet
+ */
+function getMainSpreadsheet() {
+  return getSpreadsheet(getMainSheetId());
 }
 
 /**
@@ -110,7 +114,7 @@ function setupSheetIds(sheetIds = null) {
     // Store from CONFIG (for initial setup)
     Object.keys(CONFIG.SPREADSHEET_IDS).forEach(key => {
       const id = CONFIG.SPREADSHEET_IDS[key];
-      if (id && id.trim() !== '') {
+      if (id && id !== 'YOUR_MAIN_SHEET_ID_HERE') {
         properties.setProperty(`SPREADSHEET_ID_${key.toUpperCase()}`, id);
         Logger.log(`Stored SPREADSHEET_ID_${key.toUpperCase()}`);
       }
@@ -119,12 +123,4 @@ function setupSheetIds(sheetIds = null) {
   
   Logger.log('✅ Sheet IDs stored in PropertiesService');
   Logger.log('⚠️  You can now remove IDs from Config.gs for security');
-}
-
-/**
- * Get the main spreadsheet object
- * @return {Spreadsheet} The main spreadsheet
- */
-function getMainSpreadsheet() {
-  return getSpreadsheet(getMainSheetId());
 }

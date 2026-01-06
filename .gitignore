@@ -2,6 +2,10 @@
 .clasp.json
 .clasprc.json
 
+# Local configuration files with sensitive data
+**/Config.local.gs
+**/*.local.gs
+
 # Node modules
 node_modules/
 
