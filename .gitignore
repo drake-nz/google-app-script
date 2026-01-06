@@ -1,0 +1,29 @@
+# Google Apps Script - Personal Auth Files (DO NOT COMMIT)
+.clasp.json
+.clasprc.json
+
+# Node modules
+node_modules/
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# IDE
+.vscode/
+.idea/
+.cursor/
+
+# Compiled/Transpiled files
+*.js
+!node_modules/
+
+# Temporary files
+*.tmp
+*.temp
